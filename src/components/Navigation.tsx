@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Bitcoin } from "lucide-react";
 import UniversalConnect from "@/components/UniversalConnect";
+import { Link } from "react-router-dom";
 
 const Navigation = () => {
   return (
@@ -16,15 +17,15 @@ const Navigation = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-6">
-          <a href="/" className="text-[13px] font-medium text-foreground/80 hover:text-foreground transition-colors">
+          <Link to="/" className="text-[13px] font-medium text-foreground/80 hover:text-foreground transition-colors">
             Home
-          </a>
-          <a href="/features" className="text-[13px] font-medium text-foreground/80 hover:text-foreground transition-colors">
+          </Link>
+          <Link to="/features" className="text-[13px] font-medium text-foreground/80 hover:text-foreground transition-colors">
             Features
-          </a>
-          <a href="/blog" className="text-[13px] font-medium text-foreground/80 hover:text-foreground transition-colors">
+          </Link>
+          <Link to="/blog" className="text-[13px] font-medium text-foreground/80 hover:text-foreground transition-colors">
             Blog
-          </a>
+          </Link>
         </div>
 
         <UniversalConnect />
