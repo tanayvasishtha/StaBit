@@ -7,6 +7,8 @@ import { toast } from "sonner";
 // Temporarily disable Starknet imports to avoid runtime import errors
 import { fetchQuote } from "@/lib/rates";
 import { fetchRate } from "@/lib/price";
+import { fetchNetworkFee } from "@/lib/fees";
+import { createSwap, pollSwap } from "@/lib/swap";
 
 const SwapWidget = () => {
   const [fromAmount, setFromAmount] = useState("");
@@ -21,6 +23,8 @@ const SwapWidget = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [lockSeconds, setLockSeconds] = useState(0);
   const timerRef = useRef<number | null>(null);
+  const [slippage, setSlippage] = useState("0.5"); // %
+  const [swapId, setSwapId] = useState<string | null>(null);
 
   useEffect(() => {
     if (toAsset !== "BTC" && starknetAddress) {
@@ -62,7 +66,7 @@ const SwapWidget = () => {
     setToAmount(fromAmount);
   };
 
-  const handleSwap = () => {
+  const handleSwap = async () => {
     if (!fromAmount || !walletAddress) {
       toast.error("Please fill in all fields");
       return;
@@ -87,11 +91,28 @@ const SwapWidget = () => {
     setIsSwapping(true);
     toast.loading("Initiating swap at locked rate...");
 
-    // Simulate network delay
-    setTimeout(() => {
+    try {
+      const req = {
+        fromAsset,
+        toAsset,
+        amount: parseFloat(fromAmount),
+        recipient: walletAddress,
+        slippageBps: Math.round(parseFloat(slippage || "0") * 100),
+      };
+      const res = await createSwap(req);
+      setSwapId(res.id);
+      // Poll once for completion (mock)
+      const finalRes = await pollSwap(res.id);
+      if (finalRes.status === "completed") {
+        toast.success("Swap completed successfully!");
+      } else {
+        toast.error("Swap failed. Please try again.");
+      }
+    } catch (e) {
+      toast.error("Swap failed. Please try again.");
+    } finally {
       setIsSwapping(false);
-      toast.success("Swap completed successfully!");
-    }, 3000);
+    }
   };
 
   const calculateToAmount = (value: string) => {
@@ -167,10 +188,7 @@ const SwapWidget = () => {
                 1 {fromAsset} = {rate.toLocaleString(undefined, { maximumFractionDigits: 8 })} {toAsset}
               </span>
             </div>
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-muted-foreground">Network Fee</span>
-              <span className="font-medium text-foreground">0.0001 {fromAsset}</span>
-            </div>
+            <NetworkFeeRow asset={fromAsset} />
             {isLocked && (
               <div className="flex justify-between items-center text-xs mt-1.5">
                 <span className="text-muted-foreground">Rate locked</span>
@@ -209,6 +227,20 @@ const SwapWidget = () => {
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                 <span className="text-xs font-medium text-primary">Transaction in progress...</span>
               </div>
+              <div className="flex justify-between items-center text-xs mt-1.5">
+                <span className="text-muted-foreground">Slippage</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={slippage}
+                    onChange={(e) => setSlippage(e.target.value)}
+                    className="w-16 bg-transparent border border-border/40 rounded px-2 py-1 text-right"
+                  />
+                  <span>%</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -218,3 +250,29 @@ const SwapWidget = () => {
 };
 
 export default SwapWidget;
+
+function NetworkFeeRow({ asset }: { asset: string }) {
+  const [fee, setFee] = useState<{ amount: number; symbol: string; approx: boolean } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const f = await fetchNetworkFee(asset);
+        if (!cancelled) setFee(f);
+      } catch {
+        if (!cancelled) setFee(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [asset]);
+
+  return (
+    <div className="flex justify-between items-center text-xs">
+      <span className="text-muted-foreground">Network Fee</span>
+      <span className="font-medium text-foreground">
+        {fee ? `${fee.amount.toFixed(8)} ${fee.symbol}` : "~"}
+      </span>
+    </div>
+  );
+}
