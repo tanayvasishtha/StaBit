@@ -14,13 +14,19 @@ export function EvmWalletProvider({ children }: { children: React.ReactNode }) {
     const [isConnecting, setIsConnecting] = useState(false);
 
     const connect = useCallback(async () => {
-        const eth = (window as any).ethereum;
-        if (!eth) {
+        const injected = (window as any).ethereum as any;
+        if (!injected) {
             alert("MetaMask not detected. Please install MetaMask.");
             return;
         }
         try {
             setIsConnecting(true);
+            // Prefer MetaMask over other injectors if multiple are present
+            const eth: any = Array.isArray(injected.providers)
+                ? injected.providers.find((p: any) => p.isMetaMask) || injected
+                : injected;
+            // Wake provider and then request accounts
+            try { await eth.request({ method: "eth_chainId" }); } catch { }
             const accounts: string[] = await eth.request({ method: "eth_requestAccounts" });
             setAddress(accounts?.[0]);
         } finally {
