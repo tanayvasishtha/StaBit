@@ -3,9 +3,6 @@
 ## Overview
 StaBit is a user-friendly and secure web application that enables seamless cross-chain swapping between Bitcoin (BTC) and Starknet assets (STRK, ETH, and others). Built with modern web technologies and integrated with Atomiq and Xverse APIs, StaBit simplifies the complex process of swapping assets across chains while providing real-time rates and transparent fees.
 
-***
-*Include a GIF or high-quality screenshot of your application here. A visual demonstration is highly effective for judges.*
-***
 
 ## Features
 *   **Cross-Chain Swaps:** Swap BTC to STRK/ETH and vice versa.
